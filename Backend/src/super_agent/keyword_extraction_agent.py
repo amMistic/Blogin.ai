@@ -1,18 +1,13 @@
 from langchain_groq import ChatGroq
 from langchain.agents import create_tool_calling_agent, AgentExecutor
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
-
 from dotenv import load_dotenv
-from pprint import pprint
-import json
 
-from pydantic_models import KeywordExtraction
-from prompts import prompts
-
+from super_agent.pydantic_models import KeywordExtraction
+from super_agent.prompts import prompts
 
 class KeywordExtractionAgent:
-    def __init__(self, tools : list = [], prompt : ChatPromptTemplate = None):
+    def __init__(self, tools : list = []):
         load_dotenv()
         self.llm = ChatGroq(
             model="llama-3.3-70b-versatile",
@@ -21,31 +16,36 @@ class KeywordExtractionAgent:
             max_retries=2,
         )
         self.parser = PydanticOutputParser(pydantic_object=KeywordExtraction)
-        self.prompt = prompt.partial(format_instructions=self.parser.get_format_instructions())
+        self.prompt = prompts['KeywordExtractionAgent'].partial(format_instructions=self.parser.get_format_instructions())
         self.tools = tools
-        self.agent = None
         
     def run(self, query : str):
         # define research agent
-        self.agent = create_tool_calling_agent(
+        agent = create_tool_calling_agent(
             llm = self.llm,
             tools = self.tools,
             prompt = self.prompt 
         )
         
         # excute the research agent 
-        agent_executor = AgentExecutor(agent=self.agent, tools = self.tools, verbose=True)
+        agent_executor = AgentExecutor(agent=agent, tools = self.tools, verbose=True)
         response = agent_executor.invoke({
             'query' : f"{query}"
         })
-        return json.dumps(response)
+        return response
         
 
 if __name__ == '__main__':
-    tools = []
-    agent = KeywordExtractionAgent(tools=tools, prompt=prompts['KeywordExtractionAgent'])
-    query = 'Create a blog on Machine Learning with round 400words and make sure its begginer friendly, more readability, invoved enough math depends on topic with suitable example for each complex topic'
+    agent = KeywordExtractionAgent()
+    query = '''
+    Write a step-by-step 1500-word blog post on "How to Build a Personal Brand from Scratch." Provide a detailed plan with daily or weekly milestones, actionable tasks, and practical tips on content creation, audience engagement, and networking. Include challenges readers might face and how to overcome them. End with motivational advice and potential benefits of building a strong personal brand. Keep the tone practical and encouraging.
+    '''
+    
     response = agent.run(query)
-    pprint(f'Response : {response} \n\n Response Type : {type(response)} ')
+    # print(f'Response : {response}\n\n')
+
+    keywords = response.get('output')
+    print(f'Keywords : {keywords} ')
+    
     
     
