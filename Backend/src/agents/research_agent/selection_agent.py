@@ -1,77 +1,65 @@
-from langchain.schema import SystemMessage, HumanMessage 
-from langchain.agents import initialize_agent
-from langchain.agents import AgentType
+from langchain.agents import create_tool_calling_agent 
+from langchain_core.output_parsers import PydanticOutputParser
+from langchain.agents import AgentExecutor
 from langchain_groq import ChatGroq
 
 from dotenv import load_dotenv
 import json
 
-from tools import search_trending_topic_tool, selection_tool
-from data_acquisition import DataAcquisition 
+from super_agent.keyword_extraction_agent import KeywordExtractionAgent
+from agents.research_agent.tools import trending_topics_fetching_tool
+from agents.childagent_pydantic import SelectionAgentResponse
+from agents.prompts import prompts
 
 # load environmental variable
 load_dotenv()
 
 class SelectionAgent:
-    def __init__(self, tools : list, trending_topics :str):
+    def __init__(self, tools : list):
         self.llm = ChatGroq(
             model="llama-3.3-70b-versatile",
             temperature=0.7,
             max_tokens=1024,
             max_retries=2,
-            response_format = "json"
         )
-        self.trending_topics = trending_topics
         self.tools = tools
+        self.parser = PydanticOutputParser(pydantic_object=SelectionAgentResponse)
+        self.prompts = prompts['SelectionAgent'].partial(format_instructions=self.parser.get_format_instructions())
         
-    def selection_trending(self, trending_topics : str) -> str:
-        system_prompt = f'''
-        You are a Research Agent responsible for selecting the best trending HR topic for content creation.
-        You receive trending topics from Twitter, Reddit, and HRDive in JSON format. Your goal is to:
-        1. **Analyze** all trending topics.
-        2. **Evaluate** based on relevance, engagement, and popularity.
-        3. **Select the best topic** for content planning.
-        4. **Ensure a structured JSON output** with `title`, `source`, and `url`.
-        
-        ## Input JSON Format:
-        {trending_topics}
-        
-        ## Selection Criteria:
-        1. **Relevance**: Must be directly related to HR, workforce trends, hiring, or business.
-        2. **Engagement**: Must have high user engagement (likes, shares, comments).
-        3. **Recency**: Must be **trending now** (not old topics).
-        4. **Credibility**: Prioritize **HRDive** over social media unless Twitter/Reddit has exceptional engagement.
-
-        ## **Final Output Format:**
-        "{
-            "selected_topic" : "Topic Name",
-            
-            "source" : "Twitter | Reddit | HRDive,"
-            "url" : "url"
-        }"
-
-        '''
-        # get the response from the selection agetn
-        response = self.llm.invoke([SystemMessage(content=system_prompt)])
-        return response.content
-    
-    def run(self):
-        # create a tool
-        selection_agent = initialize_agent(
-            agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,  # Simple reasoning + tool usage
-            tools = self.tools, # Assign tool
-            llm=self.llm,
-            verbose=True  # Enable logging for debugging
+    def run(self, keywords):
+        agent = create_tool_calling_agent(
+            llm = self.llm,
+            tools = self.tools,
+            prompt = self.prompts
         )
         
-        response = selection_agent.invoke(self.trending_topics)
+        agent_executor = AgentExecutor(agent=agent, tools=self.tools, verbose = True)
+        response = agent_executor.invoke({
+            "query": keywords.get("topic", "Default Query"),
+            "format_instructions": self.parser.get_format_instructions(),
+            # "title": keywords.get("title", "Default Topic"),
+        })
+        
         return response
     
 if __name__ == '__main__':
-    da = DataAcquisition()
-    trending_topics = da.run(5)
+    # fetch the keywords
+    KEA = KeywordExtractionAgent()
+    query = '''
+    I want a 2000-word beginner-friendly blog on MCP Server with background context, practical examples, and simple explanations.
+    '''
+    
+    response = KEA.run(query)
+    keywords = response.get('output')
+    if "```" in keywords : 
+        keywords = keywords.replace('```json','').replace('```','')
+    keywords = json.loads(keywords)
+    print(f'Keywords : {keywords} \n\n Blog Specification : {keywords.get('blog_specifications')}')
 
-    tools = [selection_tool]
-    sa = SelectionAgent(tools=tools, trending_topics=trending_topics)
-    print(json.dumps(sa.run()))
+    # passing the output from Keyword Extraction Agent -- > SelectionAgent 
+    tools = [trending_topics_fetching_tool]
+    sa = SelectionAgent(tools=tools)
+    sa_repsonse = sa.run(keywords)
+    
+    print(f'Selected Agent : {sa_repsonse.get('output')}')
     

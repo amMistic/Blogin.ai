@@ -3,13 +3,16 @@ from pprint import pprint
 import requests
 import os
 
+# Configure logging
+from core.logging_config import (
+    app_logger,
+    reddit_logger,
+    google_trend_logger,
+    twitter_trend_logger
+)
+
 # Loading Environment Variable
 load_dotenv()
-
-# Configure logging
-from logging_config import app_logger, reddit_logger, google_trend_logger, twitter_trend_logger
-
-
 
 # Fetching Trending Topics From Reddict 
 class RedditClient:

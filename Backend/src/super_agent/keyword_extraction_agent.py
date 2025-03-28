@@ -2,6 +2,7 @@ from langchain_groq import ChatGroq
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.output_parsers import PydanticOutputParser
 from dotenv import load_dotenv
+import json
 
 from super_agent.pydantic_models import KeywordExtraction
 from super_agent.prompts import prompts
@@ -45,7 +46,11 @@ if __name__ == '__main__':
     # print(f'Response : {response}\n\n')
 
     keywords = response.get('output')
-    print(f'Keywords : {keywords} ')
     
+    if "```" in keywords : 
+        keywords = keywords.replace('```json','').replace('```','')
+    
+    keywords = json.loads(keywords)
+    print(f'Keywords : {keywords} \n\n  Blog Specification : {keywords.get('blog_specifications')}')
     
     
