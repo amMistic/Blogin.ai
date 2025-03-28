@@ -26,7 +26,8 @@ class SelectionAgent:
         
     def selection_trending(self, trending_topics : str) -> str:
         system_prompt = f'''
-        You are a Research Agent responsible for selecting the best trending HR topic for content creation. You receive trending topics from Twitter, Reddit, and HRDive in JSON format. Your goal is to:
+        You are a Research Agent responsible for selecting the best trending HR topic for content creation.
+        You receive trending topics from Twitter, Reddit, and HRDive in JSON format. Your goal is to:
         1. **Analyze** all trending topics.
         2. **Evaluate** based on relevance, engagement, and popularity.
         3. **Select the best topic** for content planning.
@@ -44,6 +45,7 @@ class SelectionAgent:
         ## **Final Output Format:**
         "{
             "selected_topic" : "Topic Name",
+            
             "source" : "Twitter | Reddit | HRDive,"
             "url" : "url"
         }"

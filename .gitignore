@@ -1,2 +1,5 @@
 # Evnironment file
 /Backend/.env
+
+# Avoid logs here
+/Backend/src/logs/

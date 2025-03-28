@@ -22,12 +22,12 @@ class DataAcquisition:
         )
         self.pytrends = TrendReq()
 
+        
         # Initialize Tweepy Client if API key is provided
         if self.twitter_api_key:
             self.client = tweepy.Client(bearer_token=self.twitter_api_key)
         else:
             self.client = None
-        
 
     def reddit_hr_trends(self, subreddit_name="humanresources", limit=5):
         logging.info('Fetching Most Recent Reddit Post...')
