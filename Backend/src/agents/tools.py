@@ -2,7 +2,7 @@ from langchain.agents import Tool
 
 from core.api_client import APIClient
 
-# api client 
+# api client  --> Keyword Extraction Agent 
 client = APIClient()
 trending_topics_fetching_tool = Tool(
     name = "trending_topics_fetching_tool",

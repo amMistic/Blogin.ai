@@ -26,6 +26,7 @@ def setup_logger(name, log_file, level=logging.INFO):
 super_agent_logger = setup_logger("SuperAgent", "super_agent.log")
 keyword_logger = setup_logger("KeywordExtractionAgent", "keyword_extraction.log")
 research_logger = setup_logger("ResearchAgent", "research_agent.log")
+outline_logger = setup_logger('ContentPlanningAgent', "content_planning_agent.log")
 app_logger = setup_logger("App", "app.log")
 
 reddit_logger = setup_logger("RedditAPI","reddit.log")
